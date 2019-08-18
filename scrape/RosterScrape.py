@@ -22,9 +22,9 @@ if __name__ == "__main__":
              'HOU', 'LAA', 'OAK', 'SEA', 'TEX',
              'ARI', 'COL', 'LAD', 'SDP', 'SFG']
     scrape = RosterScrape(teams[19], 2019)
-    success = len(scrape.roster) == 41
+    success = len(scrape.roster) == 42
     if success:
         print("Nailed it")
     else:
-        print("Needs work")
+        print("Needs work, actually found " + str(len(scrape.roster)))
 
