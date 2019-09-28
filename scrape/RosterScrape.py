@@ -6,8 +6,8 @@ class RosterScrape:
     def __init__(self, team, year):
         self.roster = []
         url = 'https://www.baseball-reference.com/teams/' + team + '/' + str(year) + '-roster.shtml'
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = requests.get(url).text
+        soup = BeautifulSoup(response, 'html.parser')
         roster_data = soup.find(id='appearances').find('tbody').findAll('tr')
         for row in roster_data:
             name = row.find('th')['csk']
