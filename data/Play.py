@@ -1,7 +1,11 @@
 
 class Play:
 
-    def __init__(self, play_on1b, play_on2b, play_on3b, result, play_1b_finished, play_2b_finished, play_3b_finished):
+    def __init__(self, top, inning, out, batter, play_on1b, play_on2b, play_on3b, result, play_1b_finished, play_2b_finished, play_3b_finished):
+        self.top = top
+        self.inning = inning
+        self.out = out
+        self.batter = batter
         self.on1B = play_on1b
         self.on2B = play_on2b
         self.on3B = play_on3b
