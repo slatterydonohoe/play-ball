@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import csv
+import re
 import sys
 
 filepath = "/Users/slatterydonohoe/Downloads/2018eve/"
@@ -22,54 +23,103 @@ game_ids = [
     'ANA201804290'
 ]
 
-events = [
-    'K',
-    'G',
-    'F',
-    'L',
-    'SF',
-    'FO',
-    'FC',
-    'GDP',
-    'LDP',
-    'GTP',
-    'LTP',
-    'S',
-    'D',
-    'T',
-    'DGR',
-    'FC',
-    'FLE',
-    'H',
-    'HR',
-
-
+events = [ #
+    'K', # strikeout
+    'W', # walk
+    'IW', # intentional walk
+    'HP', # hit by pitch
+    'E', # error
+    'G', # grounder
+    'F', # fly
+    'P', # popup
+    'L', # line drive
+    'SF', # sac fly
+    'FC', # fielder's choice
+    'S', # single
+    'D', # double
+    'T', # triple
+    'H', # homer
+    'HR', # homer
+    'DGR', # ground rule double
+    'FLE', # fly ball error
+    # 'DP', # double play
+    'GDP', # grounder double play
+    'LDP', # liner double play
+    # 'TP', # triple play
+    'GTP', # grounder triple play
+    'LTP', # liner triple play
+    # extras I don't care about
+    'PO', # picked off
+    'POCS', # picked off caught stealing
+    'BG', # ground ball bunt
+    # 'DI', # defensive indifference
+    'OA' # other runner's advance not covered by codes
 ]
 
-def parse_result(res):
-    res_elements = res.split('/')
+regex = '^[A-Z]+'
+
+
+def parse_result(result):
+    res_elements = result.split('/')
     desc = res_elements[0]
     outs = 0
-    mod = res_elements[-1] if len(res_elements) > 1 else desc
-    field_event = mod.split('.')[0]
-    field_play = mod.split('.')[1] if len(mod.split('.')) > 1 else ""
+    # Play class values
+    #game_id
+    #batter_id
+    #pitcher_id
+    #balls
+    #strikes
+    on_1B = ''
+    on_2B = ''
+    on_3B = ''
+    play = ''
+    finished_1B = 0
+    finished_2B = 0
+    finished_3B = 0
+    mod = desc
+    r1 = re.findall(regex, mod)
     if len(res_elements) > 1:
+        mod = res_elements[-1]
+
+    # field_event = mod.split('.')[0]
+    #field_play = mod.split('.')[1] if len(mod.split('.')) > 1 else ""
+
+    # field out
+    if not(len(r1) > 0 and r1[0] in events) and desc[0].isdigit() and len(res_elements) > 1:
+        r1 = re.findall(regex, mod)
+        if not(len(r1) > 0 and r1[0] in events) and len(res_elements) > 2:
+            mod = res_elements[-2]
+            r1 = re.findall(regex, mod)
+    if len(r1) > 0 and r1[0] in events:
+        play = r1[0]
+    # else:
+    #    mod = res_elements[-2]
+    #    r1 = re.findall(regex, mod)
+
+    else:
+        print("WHAT THE FUCK")
+
+    #if len(res_elements) > 1:
         # triple play
-        if any(x in res for x in ['GTP', 'LTP', '/TP']):
-            return 3
-        # double play
-        elif any(x in res for x in ['GDP', 'LDP', '/DP']):
-            return 2
-        # all other outs
-        elif field_event in events[4:6] or desc[0].isdigit():
-            outs += 1
-    if desc[0] == 'K':
-        outs += 1
+    #    if any(x in res for x in ['GTP', 'LTP', '/TP']):
+    #        if result == '':
+    #            result = 'TP'
+    #        outs = 3
+    #    # double play
+    #    elif any(x in res for x in ['GDP', 'LDP', '/DP']):
+    #        if result == '':
+    #            result = 'DP'
+    #        outs = 2
+    #    # all other outs
+    #    # elif field_event in events[4:6] or \
+    #    elif desc[0].isdigit():
+    #        outs += 1
+
     # outs in the field
-    outs += field_play.count('X')
+    #outs += field_play.count('X')
     # caught stealing
     outs += desc.count('CS')
-    return outs
+    return play
     # regex for matching outs
 
 
@@ -84,8 +134,8 @@ def parse_play(play):
 
 
 def parse_game(reader, game_id):
-    outs = 0
-    inning_outs = 0
+    hits = 0
+    inning_hits = 0
     inning = '1'
     top = '0'
     found_game = False
@@ -99,21 +149,25 @@ def parse_game(reader, game_id):
             elif found_game:
                 break
         # process play row
-        elif found_game and ((row[0] == "play" and found_game) or row[0] == "data"):
+        elif found_game and (row[0] == "play" or row[0] == "data"):
             # log half-inning
             if inning != row[1] or top != row[2]:
-                print("Outs for " + ("top " if top == '0' else "bot ") + str(inning) + ": " + str(inning_outs))
+                print("Hits for " + ("top " if top == '0' else "bot ") + str(inning) + ": " + str(inning_hits))
                 if row[0] == "play":
                     inning = row[1]
                     top = row[2]
-                    inning_outs = 0
+                    inning_hits = 0
             if row[0] == "data":
                 break
+            # ignore no-plays, steals/caught stealing/def indifference, and passed ball/ wild pitch
+            elif row[6] == "NP" or any(re.match(x, row[6]) for x in ['^CS', '^SB', '^DI', '^WP', '^PB']):
+                continue
             else:
-                row_outs = parse_play(row)
-                outs += row_outs
-                inning_outs += row_outs
-    print("Outs for game " + game_id + ": " + str(outs))
+                row_event = parse_play(row)
+                if row_event in ['S', 'D', 'T', 'HR', 'H', 'DGR'] and top == '1':
+                    hits += 1
+                    inning_hits += 1
+    print("Hits for game " + game_id + ": " + str(hits))
 
 
 def parse_file(file, game_id):
