@@ -1,3 +1,4 @@
 retrosheet-parse/.idea/modules.xml
 retrosheet-parse/.idea/misc.xml
 retrosheet-parse/.idea/workspace.xml
+*.pyc
