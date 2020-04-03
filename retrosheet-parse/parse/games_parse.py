@@ -57,7 +57,13 @@ class GamesParse:
     @staticmethod
     def send_play_to_db(play):
         cursor = GamesParse.cnx.cursor()
-        args = (play.game_id, play.play_id)
+        args = (play.game_id, play.play_id, play.batter_id, play.pitcher_id, play.home, play.balls, play.strikes,
+                play.on_1B, play.on_2B, play.on_3B, play.result,
+                play.finished_H, play.finished_1B, play.finished_2B, play.finished_3B)
+        try:
+            cursor.callproc('add_play', args)
+        except mysql.connector.Error as error:
+            print("Failed to execute stored procedure: {}".format(error))
 
     @staticmethod
     def send_game_to_db(game_id, away, home):
@@ -68,7 +74,7 @@ class GamesParse:
             print("Failed to execute stored procedure: {}".format(error))
 
     @staticmethod
-    def parse_result(result, game, play_num, player):
+    def parse_result(result, game, play_num, player, home):
         res_elements = result.split('/')
         desc = res_elements[0]
         outs = 0
@@ -126,7 +132,7 @@ class GamesParse:
                     finished_at_bases[int(out[0])] = -1
                     outs += 1
 
-        play = Play(game, play_num, player, '', 0, 0,
+        play = Play(game, play_num, player, '', home, 0, 0,
                     GamesParse.onBases[1], GamesParse.onBases[2], GamesParse.onBases[3],
                     play_id,
                     finished_at_bases[0],
@@ -135,6 +141,7 @@ class GamesParse:
                     finished_at_bases[3])
         # set current on-base ids
         temp_on_bases = list(GamesParse.onBases)
+        GamesParse.onBases = ['', '', '', '']
         for x in finished_at_bases:
             if x in [1, 2, 3]:
                 GamesParse.onBases[x] = temp_on_bases[finished_at_bases.index(x)]
@@ -148,7 +155,7 @@ class GamesParse:
         count = play[4]
         result = play[6]
         GamesParse.onBases[0] = player_id
-        (play, outs) = GamesParse.parse_result(result, game, play_id, player_id)
+        (play, outs) = GamesParse.parse_result(result, game, play_id, player_id, home)
         play.inning = inning
         play.home = home
         play.balls = int(count[0])
@@ -167,6 +174,7 @@ class GamesParse:
         found_game = False
         vis_id = ''
         home_id = ''
+        plays = []
         for row in reader:
 
             # process game ID row
@@ -198,23 +206,24 @@ class GamesParse:
                 # ignore no-plays, steals/caught stealing/def indifference, and passed ball/ wild pitch
                 elif row[6] == 'NP' or any(re.match(x, row[6]) for x in ['^CS', '^SB', '^DI', '^WP', '^PB']):
                     continue
-                elif top == '1':
+                else:
                     (row_event, play_outs) = GamesParse.parse_play(row, game_id, play_id)
                     play_id += 1
                     outs += play_outs
                     inning_outs += play_outs
+                    plays.append(row_event)
                     if row_event.result in ['S', 'D', 'T', 'HR', 'H', 'DGR']:
                         hits += 1
                         inning_hits += 1
-        return vis_id, home_id, hits, outs
+        return vis_id, home_id, hits, outs, plays
 
     @staticmethod
     def parse_file_for_game(file, game_id):
         with open(file) as season_file:
             season_reader = csv.reader(season_file, delimiter=',')
-            play = GamesParse.parse_game(season_reader, game_id)
+            data = GamesParse.parse_game(season_reader, game_id)
             season_file.close()
-            return play
+            return data
 
     @staticmethod
     def parse_file_for_all_games(file):
@@ -228,13 +237,15 @@ class GamesParse:
                     ids.append(row[1])
             season_file.close()
         for game in ids:
-            (vis, home, hits, outs) = GamesParse.parse_file_for_game(file, game)
+            (vis, home, hits, outs, plays) = GamesParse.parse_file_for_game(file, game)
             GamesParse.send_game_to_db(game, vis, home)
+            for p in plays:
+                GamesParse.send_play_to_db(p)
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 3:
-        (vis_team, home_team, game_hits, game_outs) = GamesParse.parse_file_for_game(sys.argv[1], sys.argv[2])
+        (vis_team, home_team, game_hits, game_outs, game_plays) = GamesParse.parse_file_for_game(sys.argv[1], sys.argv[2])
         GamesParse.send_game_to_db(sys.argv[2], vis_team, home_team)
         GamesParse.cnx.close()
     elif len(sys.argv) == 2:

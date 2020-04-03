@@ -6,47 +6,62 @@ file_path = '../test_files/2018ANA.EVA'
 
 class TestGamesParse(TestCase):
     def test_ANA20180402(self):
-        self.assertEqual(("CLE", "ANA", 6, 27), GamesParse.parse_file_for_game(file_path, "ANA201804020"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804020")
+        self.assertEqual(("CLE", "ANA", 6, 27), (visitor, home, hits, outs))
 
     def test_ANA20180403(self):
-        self.assertEqual(("CLE", "ANA", 13, 24), GamesParse.parse_file_for_game(file_path, "ANA201804030"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804030")
+        self.assertEqual(("CLE", "ANA", 13, 24), (visitor, home, hits, outs))
 
     def test_ANA20180404(self):
-        self.assertEqual(("CLE", "ANA", 6, 37), GamesParse.parse_file_for_game(file_path, "ANA201804040"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804040")
+        self.assertEqual(("CLE", "ANA", 6, 37), (visitor, home, hits, outs))
 
     def test_ANA20180406(self):
-        self.assertEqual(("OAK", "ANA", 14, 24), GamesParse.parse_file_for_game(file_path, "ANA201804060"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804060")
+        self.assertEqual(("OAK", "ANA", 14, 24), (visitor, home, hits, outs))
 
     def test_ANA20180407(self):
-        self.assertEqual(("OAK", "ANA", 7, 27), GamesParse.parse_file_for_game(file_path, "ANA201804070"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804070")
+        self.assertEqual(("OAK", "ANA", 7, 27), (visitor, home, hits, outs))
 
     def test_ANA20180408(self):
-        self.assertEqual(("OAK", "ANA", 7, 24), GamesParse.parse_file_for_game(file_path, "ANA201804080"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804080")
+        self.assertEqual(("OAK", "ANA", 7, 24), (visitor, home, hits, outs))
 
     def test_ANA20180417(self):
-        self.assertEqual(("BOS", "ANA", 4, 27), GamesParse.parse_file_for_game(file_path, "ANA201804170"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804170")
+        self.assertEqual(("BOS", "ANA", 4, 27), (visitor, home, hits, outs))
 
     def test_ANA20180418(self):
-        self.assertEqual(("BOS", "ANA", 6, 27), GamesParse.parse_file_for_game(file_path, "ANA201804180"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804180")
+        self.assertEqual(("BOS", "ANA", 6, 27), (visitor, home, hits, outs))
 
     def test_ANA20180419(self):
-        self.assertEqual(("BOS", "ANA", 4, 27), GamesParse.parse_file_for_game(file_path, "ANA201804190"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804190")
+        self.assertEqual(("BOS", "ANA", 4, 27), (visitor, home, hits, outs))
 
     def test_ANA20180420(self):
-        self.assertEqual(("SFN", "ANA", 5, 27), GamesParse.parse_file_for_game(file_path, "ANA201804200"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804200")
+        self.assertEqual(("SFN", "ANA", 5, 27), (visitor, home, hits, outs))
 
     def test_ANA20180421(self):
-        self.assertEqual(("SFN", "ANA", 6, 24), GamesParse.parse_file_for_game(file_path, "ANA201804210"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804210")
+        self.assertEqual(("SFN", "ANA", 6, 24), (visitor, home, hits, outs))
 
     def test_ANA20180422(self):
-        self.assertEqual(("SFN", "ANA", 6, 27), GamesParse.parse_file_for_game(file_path, "ANA201804220"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804220")
+        self.assertEqual(("SFN", "ANA", 6, 27), (visitor, home, hits, outs))
 
     # Note: test for 0427 should be 30 outs, but we're missing handling for outs caught stealing
     def test_ANA20180427(self):
-        self.assertEqual(("NYA", "ANA", 6, 29), GamesParse.parse_file_for_game(file_path, "ANA201804270"))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804270")
+        self.assertEqual(("NYA", "ANA", 6, 29), (visitor, home, hits, outs))
 
     def test_ANA20180706(self):
-        self.assertEqual(("LAN", "ANA", 5, 27), GamesParse.parse_file_for_game(file_path, 'ANA201807060'))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, 'ANA201807060')
+        self.assertEqual(("LAN", "ANA", 5, 27), (visitor, home, hits, outs))
 
     def test_ANA20180812(self):
-        self.assertEqual(("OAK", "ANA", 11, 27), GamesParse.parse_file_for_game(file_path, 'ANA201808120'))
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, 'ANA201808120')
+        self.assertEqual(("OAK", "ANA", 11, 27), (visitor, home, hits, outs))

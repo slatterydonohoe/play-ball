@@ -1,5 +1,6 @@
 retrosheet-parse/.idea/modules.xml
 retrosheet-parse/.idea/misc.xml
 retrosheet-parse/.idea/workspace.xml
+retrosheet-parse/.idea/dictionaries*
 *.pyc
 *credentials.py
