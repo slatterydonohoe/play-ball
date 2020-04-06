@@ -53,10 +53,13 @@ class TestGamesParse(TestCase):
         (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804220")
         self.assertEqual(("SFN", "ANA", 6, 27), (visitor, home, hits, outs))
 
-    # Note: test for 0427 should be 30 outs, but we're missing handling for outs caught stealing
     def test_ANA20180427(self):
         (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201804270")
-        self.assertEqual(("NYA", "ANA", 6, 29), (visitor, home, hits, outs))
+        self.assertEqual(("NYA", "ANA", 6, 30), (visitor, home, hits, outs))
+
+    def test_ANA20180618(self):
+        (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, "ANA201806180")
+        self.assertEqual(("ARI", "ANA", 12, 27), (visitor, home, hits, outs))
 
     def test_ANA20180706(self):
         (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, 'ANA201807060')
