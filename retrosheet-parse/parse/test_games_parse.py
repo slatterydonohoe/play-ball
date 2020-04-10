@@ -63,7 +63,7 @@ class TestGamesParse(TestCase):
 
     def test_ANA20180706(self):
         (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, 'ANA201807060')
-        self.assertEqual(("LAN", "ANA", 5, 27), (visitor, home, hits, outs))
+        self.assertEqual(("LAN", "ANA", 5, 26), (visitor, home, hits, outs))
 
     def test_ANA20180812(self):
         (visitor, home, hits, outs, plays) = GamesParse.parse_file_for_game(file_path, 'ANA201808120')

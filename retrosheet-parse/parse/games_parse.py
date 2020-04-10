@@ -11,8 +11,20 @@ filepath = "/Users/slatterydonohoe/Downloads/2018eve/"
 
 events = [  #
     'K',  # strikeout
+    'K+SB',
+    'K+CS',
+    'K+PO',
+    'K+E',
     'W',  # walk
+    'W+SB',
+    'W+CS',
+    'W+PO',
+    'W+E',
     'IW',  # intentional walk
+    'IW+SB',
+    'IW+CS',
+    'IW+PO',
+    'IW+E',
     'HP',  # hit by pitch
     'E',  # error
     'G',  # grounder
@@ -38,15 +50,16 @@ events = [  #
     'PO',  # picked off
     'BK',  # balk
     'SB',  # stolen base
+    'CS',  # caught stealing
     'POCS',  # picked off caught stealing
     'BG',  # ground ball bunt
-    'PB',  # bassed ball
+    'PB',  # passed ball
     'WP',  # wild pitch
-    'DI', # defensive indifference
+    'DI',  # defensive indifference
     'OA'  # other runner's advance not covered by codes
 ]
 
-event_regex = r'^[A-Z]+'
+event_regex = r'^[A-Z]+\+*[A-Z]*'
 
 
 # Class to parse play-by-play data from Retrosheet data files
@@ -81,20 +94,16 @@ class GamesParse:
     def parse_result(result, game, play_num, player, home):
         res_elements = result.split('/')
         desc = res_elements[0]
-        outs = 0
         play_id = ''
-        finished_at_bases = [-1, 0, 0, 0]  # -1: out, 0: not on base, 4: scored
-        # initialize finished_at_bases values
-        for runner in GamesParse.onBases:
-            if len(runner) > 0 and runner != GamesParse.onBases[0]:
-                index = GamesParse.onBases.index(runner)
-                finished_at_bases[index] = index
+        outs = 0
+        finished_at_bases = [0, 0, 0, 0]  # -1: out, 0: not on base, 4: scored
+
         mod = desc
         r1 = re.findall(event_regex, mod)
         if len(res_elements) > 1:
             mod = res_elements[-1]
 
-        # field out
+        # find event if field out
         if not (len(r1) > 0 and r1[0] in events) and desc[0].isdigit() and len(res_elements) > 1:
             r1 = re.findall(event_regex, mod)
             if not (len(r1) > 0 and r1[0] in events) and len(res_elements) > 2:
@@ -102,10 +111,23 @@ class GamesParse:
                 r1 = re.findall(event_regex, mod)
         if len(r1) > 0 and r1[0] in events:
             play_id = r1[0]
+
+        # handle strikeout/walk plus baserunning - recurse
+        if play_id[:2] in ['K+', 'W+'] and play_id[2:] in ['SB', 'CS', 'OA', 'PO', 'E'] or play_id[:3] == 'IW+':
+            running_post_pitch = GamesParse.parse_result(result[len(play_id):], game, play_num, player, home)
+            outs += running_post_pitch[1]
+            result = play_id
+
+        # initialize finished_at_bases values
+        for runner in GamesParse.onBases:
+            if len(runner) > 0 and runner != GamesParse.onBases[0]:
+                index = GamesParse.onBases.index(runner)
+                finished_at_bases[index] = index
+
         # identify baserunning
         baserunning_only = play_id in ['CS', 'SB', 'DI', 'WP', 'PB', 'BK']
         # base movement
-        if play_id in ['S', 'W', 'IW', 'E', 'HP', 'FLE'] or any(result.find(x) > -1 for x in ['/FO/', 'K+PB', 'K+WP']):
+        if play_id in ['S', 'W', 'IW', 'E', 'HP', 'FLE', 'FC'] or any(result.find(x) > -1 for x in ['/FO/', 'K+PB', 'K+WP']):
             finished_at_bases[0] = 1
         elif play_id in ['D', 'DGR']:
             finished_at_bases[0] = 2
@@ -114,20 +136,30 @@ class GamesParse:
         elif play_id == 'HR':
             finished_at_bases[0] = 4
         elif not baserunning_only:
-            outs += 1
-        # runners advance, ex. 1-3 runner at first advances to third
+            finished_at_bases[0] = -1
+
+        # replace home and batter with digits
         base_mod_result = result.replace('B', '0').replace('H', '4')
+
+        # out/advance from steal/caught stealing/picked off
+        if play_id == 'SB':
+            finished_at_bases[int(result[2]) - 1] = int(result[2])
+        elif play_id == 'CS' or play_id == 'POCS':
+            index = len(play_id)
+            finished_at_bases[int(result[index]) - 1] = -1
+        elif play_id == 'PO':
+            finished_at_bases[int(result[index])] = -1
+
+        # runners advance, ex. 1-3 runner at first advances to third
         r2 = re.findall(r'[0123]-[1234]', base_mod_result)
         for adv in r2:
             finished_at_bases[int(adv[0])] = int(adv[2])
+
         # explicit outs in the field, ex. (1)
         r3 = re.findall(r'\([0123]\)', base_mod_result)
         for out in r3:
             finished_at_bases[int(out[1])] = -1
-            outs += 1
-        # handling strike-out/throw-out
-        if play_id == 'K' and result[1:4] == '+CS':
-            finished_at_bases[int(result[4]) - 1] = -1
+
         # outs on the basepaths, ex. 2X4(82) runner at second thrown out at home, from CF to catcher
         # descriptions of fielders with "E" indicate safe on error - 2X4(8E2) runner safe at home, throwing error by CF
         r4 = re.findall(r'[0123]X[1234]', base_mod_result)
@@ -139,9 +171,9 @@ class GamesParse:
                     finished_at_bases[int(out[0])] = int(out[2])
                 else:
                     finished_at_bases[int(out[0])] = -1
-                    outs += 1
-        play = 0
+
         # don't create play event for mid-plate appearance base running
+        play = 0
         if not baserunning_only:
             play = Play(game, play_num, player, '', home, 0, 0,
                         GamesParse.onBases[1], GamesParse.onBases[2], GamesParse.onBases[3],
@@ -150,12 +182,14 @@ class GamesParse:
                         finished_at_bases[1],
                         finished_at_bases[2],
                         finished_at_bases[3])
+
         # set current on-base ids
         temp_on_bases = list(GamesParse.onBases)
         GamesParse.onBases = ['', '', '', '']
         for x in finished_at_bases:
             if x in [1, 2, 3]:
                 GamesParse.onBases[x] = temp_on_bases[finished_at_bases.index(x)]
+        outs += finished_at_bases.count(-1)
         return play, outs
 
     @staticmethod
