@@ -112,17 +112,21 @@ class GamesParse:
         if len(r1) > 0 and r1[0] in events:
             play_id = r1[0]
 
-        # handle strikeout/walk plus baserunning - recurse
-        if play_id[:2] in ['K+', 'W+'] and play_id[2:] in ['SB', 'CS', 'OA', 'PO', 'E'] or play_id[:3] == 'IW+':
-            running_post_pitch = GamesParse.parse_result(result[len(play_id):], game, play_num, player, home)
-            outs += running_post_pitch[1]
-            result = play_id
-
         # initialize finished_at_bases values
         for runner in GamesParse.onBases:
             if len(runner) > 0 and runner != GamesParse.onBases[0]:
                 index = GamesParse.onBases.index(runner)
                 finished_at_bases[index] = index
+
+        # handle strikeout/walk plus baserunning: recurse on running events
+        # and only process batter event moving forward
+        if play_id[:2] in ['K+', 'W+'] and play_id[2:] in ['SB', 'CS', 'OA', 'PO'] or play_id[:3] == 'IW+':
+            run_result = result[result.index('+') + 1:]
+            (run_play, run_outs, run_only) = GamesParse.parse_result(run_result, game, play_num, player, home)
+            finished_at_bases[1] = run_play.finished_1B
+            finished_at_bases[2] = run_play.finished_2B
+            finished_at_bases[3] = run_play.finished_3B
+            result = play_id
 
         # identify baserunning
         baserunning_only = play_id in ['CS', 'SB', 'DI', 'WP', 'PB', 'BK']
@@ -172,16 +176,13 @@ class GamesParse:
                 else:
                     finished_at_bases[int(out[0])] = -1
 
-        # don't create play event for mid-plate appearance base running
-        play = 0
-        if not baserunning_only:
-            play = Play(game, play_num, player, '', home, 0, 0,
-                        GamesParse.onBases[1], GamesParse.onBases[2], GamesParse.onBases[3],
-                        play_id,
-                        finished_at_bases[0],
-                        finished_at_bases[1],
-                        finished_at_bases[2],
-                        finished_at_bases[3])
+        play = Play(game, play_num, player, '', home, 0, 0,
+                    GamesParse.onBases[1], GamesParse.onBases[2], GamesParse.onBases[3],
+                    play_id,
+                    finished_at_bases[0],
+                    finished_at_bases[1],
+                    finished_at_bases[2],
+                    finished_at_bases[3])
 
         # set current on-base ids
         temp_on_bases = list(GamesParse.onBases)
@@ -189,8 +190,8 @@ class GamesParse:
         for x in finished_at_bases:
             if x in [1, 2, 3]:
                 GamesParse.onBases[x] = temp_on_bases[finished_at_bases.index(x)]
-        outs += finished_at_bases.count(-1)
-        return play, outs
+        outs = finished_at_bases.count(-1)
+        return play, outs, baserunning_only
 
     @staticmethod
     def parse_play(play, game, play_id):
@@ -200,13 +201,13 @@ class GamesParse:
         count = play[4]
         result = play[6]
         GamesParse.onBases[0] = player_id
-        (play, outs) = GamesParse.parse_result(result, game, play_id, player_id, home)
-        if play != 0:
+        (play, outs, baserunning_only) = GamesParse.parse_result(result, game, play_id, player_id, home)
+        if not baserunning_only:
             play.inning = inning
             play.home = home
             play.balls = int(count[0])
             play.strikes = int(count[1])
-        return play, outs
+        return play, outs, baserunning_only
 
     @staticmethod
     def parse_game(reader, game_id):
@@ -255,12 +256,13 @@ class GamesParse:
                 elif row[6] == 'NP':  # or any(re.match(x, row[6]) for x in ['^CS', '^SB', '^DI', '^WP', '^PB']):
                     continue
                 else:
-                    (row_event, play_outs) = GamesParse.parse_play(row, game_id, play_id)
-                    play_id += 1
+                    (row_event, play_outs, baserunning_only) = GamesParse.parse_play(row, game_id, play_id)
+                    if not baserunning_only:
+                        play_id += 1
                     if top == '1':
                         outs += play_outs
                         inning_outs += play_outs
-                        if row_event != 0:
+                        if not baserunning_only:
                             plays.append(row_event)
                             if row_event.result in ['S', 'D', 'T', 'HR', 'H', 'DGR']:
                                 hits += 1
