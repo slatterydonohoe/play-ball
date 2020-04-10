@@ -85,3 +85,15 @@ class TestResultsParse(TestCase):
         self.assertEqual(2, play.finished_2B)
         self.assertEqual(0, play.finished_3B)
         self.assertListEqual(['', self.batter, self.on_2b, ''], GamesParse.onBases)
+
+    def testStrikeoutStealSecond(self):
+        GamesParse.onBases = [self.batter, self.on_1b, '', '']
+        (play, outs, baserunning_only) = GamesParse.parse_result('K+SB2', 'game1', 1, self.batter, True)
+        self.assertEqual(1, outs)
+        self.assertFalse(baserunning_only)
+        self.assertEqual('K+SB', play.result)
+        self.assertEqual(-1, play.finished_H)
+        self.assertEqual(2, play.finished_1B)
+        self.assertEqual(0, play.finished_2B)
+        self.assertEqual(0, play.finished_3B)
+        self.assertListEqual(['', '', self.on_1b, ''], GamesParse.onBases)

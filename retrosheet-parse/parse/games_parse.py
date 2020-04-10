@@ -118,15 +118,19 @@ class GamesParse:
                 index = GamesParse.onBases.index(runner)
                 finished_at_bases[index] = index
 
-        # handle strikeout/walk plus baserunning: recurse on running events
-        # and only process batter event moving forward
+        # handle strikeout/walk plus baserunning
         if play_id[:2] in ['K+', 'W+'] and play_id[2:] in ['SB', 'CS', 'OA', 'PO'] or play_id[:3] == 'IW+':
+            # cache current runners on base
+            temp_on_bases = GamesParse.onBases
             run_result = result[result.index('+') + 1:]
+            # recurse on running events  and only process batter event moving forward
             (run_play, run_outs, run_only) = GamesParse.parse_result(run_result, game, play_num, player, home)
             finished_at_bases[1] = run_play.finished_1B
             finished_at_bases[2] = run_play.finished_2B
             finished_at_bases[3] = run_play.finished_3B
             result = play_id
+            # replace modified on base values with cached values
+            GamesParse.onBases = temp_on_bases
 
         # identify baserunning
         baserunning_only = play_id in ['CS', 'SB', 'DI', 'WP', 'PB', 'BK']
